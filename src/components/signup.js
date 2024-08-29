@@ -7,7 +7,7 @@ function SignupForm({ onSignupSuccess }) {
 
     const onSubmit = async (data) => {
         try {
-            const response = await axios.post('http://localhost:3000/api/register', data);
+            const response = await axios.post('https://react-auth-t80o.onrender.com/api/register', data);
             alert(response.data.message); // Success message
             onSignupSuccess(); // Switch to login or other action
         } catch (error) {
