@@ -1,0 +1,54 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies and Build Frontend
+        run: |
+          cd loginimplementation
+          npm install
+          npm run build
+      
+      - name: Deploy Frontend to GCP Bucket
+        env:
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        run: |
+          gsutil -m cp -r ./build/* gs://<YOUR_BUCKET_NAME>
+
+      - name: Build Docker Image for Backend
+        run: |
+          cd backend
+          docker build -t my-express-backend .
+          docker tag my-express-backend <YOUR_REGION>-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/<YOUR_REPOSITORY_NAME>/my-express-backend:latest
+
+      - name: Push Docker Image to Artifact Registry
+        run: |
+          docker push <YOUR_REGION>-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/<YOUR_REPOSITORY_NAME>/my-express-backend:latest
+
+      - name: Deploy Backend to Cloud Run
+        run: |
+          gcloud run deploy my-express-backend \
+            --image <YOUR_REGION>-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/<YOUR_REPOSITORY_NAME>/my-express-backend:latest \
+            --platform managed \
+            --region <YOUR_REGION> \
+            --allow-unauthenticated \
+            --set-secrets DATABASE_URI=DATABASE_URI:latest
+
+      - name: Clean Up
+        run: |
+          docker rmi my-express-backend
