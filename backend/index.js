@@ -13,6 +13,8 @@ mongoose.connect(db);
 const connection = mongoose.connection;
 connection.once('open', () => {
     console.log('Connected to MongoDB');
+}).on('error', (error) => {
+    console.log('Error connecting to MongoDB:', error);
 });
 
 const authRoutes = require('./routes/auth');
